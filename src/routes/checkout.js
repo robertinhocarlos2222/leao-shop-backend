@@ -77,6 +77,9 @@ router.post('/', async (req, res) => {
       payload.pix = { expiresInDays: 1 };
     }
 
+    // Log do payload para debug
+    console.log('📤 Enviando para SillientPay:', JSON.stringify(payload, null, 2));
+    
     // Chama SillientPay API
     const response = await axios.post(`${SILLIENTPAY_API}/transactions`, payload, {
       headers: {
@@ -84,6 +87,8 @@ router.post('/', async (req, res) => {
         'Content-Type': 'application/json'
       }
     });
+    
+    console.log('✅ Resposta da SillientPay:', JSON.stringify(response.data, null, 2));
 
     // Retorna resposta para o frontend
     res.json({
