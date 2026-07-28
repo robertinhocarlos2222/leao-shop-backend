@@ -5,6 +5,7 @@ const axios = require('axios');
 const productsRoutes = require('./routes/products');
 const checkoutRoutes = require('./routes/checkout');
 const webhookRoutes = require('./routes/webhook');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -24,6 +25,7 @@ app.use('/api/webhook', express.raw({ type: 'application/json' }), webhookRoutes
 // Rotas
 app.use('/api/products', productsRoutes);
 app.use('/api/checkout', checkoutRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
