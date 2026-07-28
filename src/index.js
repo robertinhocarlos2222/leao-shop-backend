@@ -41,6 +41,10 @@ app.post('/api/test-checkout', async (req, res) => {
     
     const token = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
     
+    // Limpa CPF e telefone (apenas números)
+    const cleanDocument = (customer?.document || '12345678900').replace(/\D/g, '');
+    const cleanPhone = (customer?.phone || '11999999999').replace(/\D/g, '');
+    
     const payload = {
       method,
       amount: 1000,
@@ -48,14 +52,13 @@ app.post('/api/test-checkout', async (req, res) => {
       customer: {
         name: customer?.name || 'Teste',
         email: customer?.email || 'teste@email.com',
-        document: customer?.document || '12345678900',
-        phone: customer?.phone || '11999999999'
+        document: cleanDocument,
+        phone: cleanPhone
       },
       pix: { expiresInDays: 1 }
     };
     
-    console.log('🧪 Teste checkout - Payload:', JSON.stringify(payload, null, 2));
-    console.log('🧪 Teste checkout - Token:', token);
+    console.log('🧪 Teste checkout - Payload limpo:', JSON.stringify(payload, null, 2));
     console.log('🧪 Teste checkout - URL:', `${SILLIENTPAY_API}/transactions`);
     
     try {
@@ -77,8 +80,6 @@ app.post('/api/test-checkout', async (req, res) => {
         status: axiosError.response?.status
       });
     }
-    
-    res.json({ success: true, data: response.data });
     
   } catch (error) {
     console.error('❌ Teste checkout - Erro:', error.response?.data || error.message);
