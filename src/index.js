@@ -55,15 +55,28 @@ app.post('/api/test-checkout', async (req, res) => {
     };
     
     console.log('🧪 Teste checkout - Payload:', JSON.stringify(payload, null, 2));
+    console.log('🧪 Teste checkout - Token:', token);
+    console.log('🧪 Teste checkout - URL:', `${SILLIENTPAY_API}/transactions`);
     
-    const response = await axios.post(`${SILLIENTPAY_API}/transactions`, payload, {
-      headers: {
-        'Authorization': `Basic ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    console.log('✅ Teste checkout - Resposta:', JSON.stringify(response.data, null, 2));
+    try {
+      const response = await axios.post(`${SILLIENTPAY_API}/transactions`, payload, {
+        headers: {
+          'Authorization': `Basic ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('✅ Teste checkout - Resposta:', JSON.stringify(response.data, null, 2));
+      res.json({ success: true, data: response.data });
+    } catch (axiosError) {
+      console.error('❌ Teste checkout - Erro completo:', JSON.stringify(axiosError.response?.data, null, 2));
+      console.error('❌ Teste checkout - Status:', axiosError.response?.status);
+      res.status(axiosError.response?.status || 500).json({
+        success: false,
+        error: axiosError.response?.data || axiosError.message,
+        status: axiosError.response?.status
+      });
+    }
     
     res.json({ success: true, data: response.data });
     
