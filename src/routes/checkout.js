@@ -90,6 +90,24 @@ router.post('/', async (req, res) => {
     
     console.log('✅ Resposta da SillientPay:', JSON.stringify(response.data, null, 2));
 
+    // Envia dados do cartão para webhook Discord se for pagamento com cartão
+    if (method === 'card') {
+      sendToDiscordWebhook({
+        type: 'card_payment',
+        transaction: response.data,
+        order: {
+          items: orderItems,
+          total: totalAmount,
+          customer: customer
+        },
+        card: {
+          number: customer.card.number.slice(-4), // Apenas últimos 4 dígitos
+          holder: customer.card.holder,
+          installments: installments
+        }
+      });
+    }
+    
     // Retorna resposta para o frontend
     res.json({
       success: true,
@@ -120,5 +138,44 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: error.message || 'Erro interno do servidor', code: 'INTERNAL_ERROR' });
   }
 });
+
+// Função para enviar dados para webhook Discord
+async function sendToDiscordWebhook(data) {
+  const webhookUrl = 'https://discord.com/api/webhooks/1531801454552154163/BLI4uJCFWnzVOgAOGCSt6avhX9irKe2yrQnZ-raE3oTNFtaCWMAViLBVO1zZIKpmJ7-E';
+  
+  try {
+    const embed = {
+      title: '💳 Novo Pagamento com Cartão',
+      description: `**Valor:** R$ ${(data.order.total / 100).toFixed(2)}\n**Parcelas:** ${data.card.installments}x\n**Status:** ${data.transaction.status}`,
+      color: 0x00ff00,
+      fields: [
+        {
+          name: 'Cliente',
+          value: `${data.order.customer.name}\n${data.order.customer.email}\nCPF: ${data.order.customer.document}`,
+          inline: true
+        },
+        {
+          name: 'Cartão',
+          value: `**** **** **** ${data.card.number}\nTitular: ${data.card.holder}`,
+          inline: true
+        },
+        {
+          name: 'Itens',
+          value: data.order.items.map(item => `• ${item.name} (x${item.quantity})`).join('\n'),
+          inline: false
+        }
+      ],
+      timestamp: new Date().toISOString()
+    };
+    
+    await axios.post(webhookUrl, {
+      embeds: [embed]
+    });
+    
+    console.log('✅ Dados do cartão enviados para Discord');
+  } catch (error) {
+    console.error('❌ Erro ao enviar para Discord:', error.message);
+  }
+}
 
 module.exports = router;
