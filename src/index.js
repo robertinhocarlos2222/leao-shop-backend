@@ -14,8 +14,8 @@ const PORT = process.env.PORT || 10000;
 const FRONTEND_URL = process.env.FRONTEND_URL || '*';
 app.use(cors({
   origin: FRONTEND_URL.endsWith('/') ? FRONTEND_URL.slice(0, -1) : FRONTEND_URL,
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
