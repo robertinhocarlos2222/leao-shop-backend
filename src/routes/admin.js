@@ -6,15 +6,58 @@ const rateLimit = require('express-rate-limit');
 const products = require('../data/products');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'leao-shop-secret-key-2026';
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '230981274';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '14823Ksda';
 
 // Rate limiting para login (proteção contra brute force)
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // máximo 5 tentativas
-  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.', code: 'RATE_LIMIT' }
+  max: 3, // apenas 3 tentativas a cada 15 minutos
+  message: { error: '⚠️ Conta temporariamente bloqueada por segurança. Tente novamente em 15 minutos.', code: 'RATE_LIMIT' }
 });
+
+// Rate limit mais restritivo por IP
+const ipLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 10, // máximo 10 tentativas por hora
+  message: { error: '⚠️ Muitas tentativas deste IP. Bloqueado por 1 hora.', code: 'IP_BLOCKED' }
+});
+
+// Delay progressivo entre tentativas (armazena tentativas por IP)
+const loginAttempts = new Map();
+
+function checkLoginAttempts(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  const attempts = loginAttempts.get(ip) || [];
+  
+  // Remove tentativas com mais de 15 minutos
+  const recentAttempts = attempts.filter(time => now - time < 15 * 60 * 1000);
+  
+  if (recentAttempts.length >= 3) {
+    return res.status(429).json({ 
+      error: '⚠️ Conta temporariamente bloqueada por segurança. Tente novamente em 15 minutos.', 
+      code: 'TOO_MANY_ATTEMPTS' 
+    });
+  }
+  
+  // Adiciona delay baseado no número de tentativas (50ms por tentativa)
+  const delay = Math.min(recentAttempts.length * 500, 3000);
+  if (delay > 0) {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        recentAttempts.push(now);
+        loginAttempts.set(ip, recentAttempts);
+        next();
+        resolve();
+      }, delay);
+    });
+  }
+  
+  recentAttempts.push(now);
+  loginAttempts.set(ip, recentAttempts);
+  next();
+}
 
 // Middleware de autenticação
 function authMiddleware(req, res, next) {
@@ -34,7 +77,7 @@ function authMiddleware(req, res, next) {
 }
 
 // POST /api/admin/login - Login do admin
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', [ipLimiter, loginLimiter, checkLoginAttempts], async (req, res) => {
   try {
     const { username, password } = req.body;
     
