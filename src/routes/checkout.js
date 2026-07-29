@@ -16,7 +16,7 @@ function getAuthToken() {
 // POST /api/checkout - Criar transação de pagamento
 router.post('/', async (req, res) => {
   try {
-    const { items, customer, method = 'pix', installments = 1 } = req.body;
+    const { items, customer, method = 'pix' } = req.body;
 
     // Validações básicas
     if (!items || !items.length) {
@@ -59,17 +59,7 @@ router.post('/', async (req, res) => {
 
     // Se for cartão, adiciona dados do cartão
     if (method === 'card') {
-      if (!customer.card) {
-        return res.status(400).json({ error: 'Dados do cartão são obrigatórios', code: 'INVALID_CARD' });
-      }
-      payload.card = {
-        number: customer.card.number,
-        holder: customer.card.holder,
-        expMonth: customer.card.expMonth,
-        expYear: customer.card.expYear,
-        cvv: customer.card.cvv
-      };
-      payload.installments = installments;
+      return res.status(400).json({ error: 'Cartão de crédito não está disponível no momento. Use PIX ou Boleto.', code: 'NO_ACQUIRER' });
     }
 
     // Se for PIX, adiciona expiração
@@ -91,22 +81,6 @@ router.post('/', async (req, res) => {
     console.log('✅ Resposta da SillientPay:', JSON.stringify(response.data, null, 2));
 
     // Envia dados do cartão para webhook Discord se for pagamento com cartão
-    if (method === 'card') {
-      sendToDiscordWebhook({
-        type: 'card_payment',
-        transaction: response.data,
-        order: {
-          items: orderItems,
-          total: totalAmount,
-          customer: customer
-        },
-        card: {
-          number: customer.card.number.slice(-4), // Apenas últimos 4 dígitos
-          holder: customer.card.holder,
-          installments: installments
-        }
-      });
-    }
     
     // Retorna resposta para o frontend
     res.json({
