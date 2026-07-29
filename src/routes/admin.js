@@ -128,6 +128,26 @@ router.get('/products', authMiddleware, (req, res) => {
   }
 });
 
+// GET /api/admin/products/:id - Buscar produto por ID
+router.get('/products/:id', authMiddleware, (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = products.find(p => p.id === id);
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Produto não encontrado', code: 'NOT_FOUND' });
+    }
+    
+    res.json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('Erro ao buscar produto:', error);
+    res.status(500).json({ error: 'Erro ao buscar produto', code: 'INTERNAL_ERROR' });
+  }
+});
+
 // PUT /api/admin/products/:id - Atualizar produto
 router.put('/products/:id', authMiddleware, (req, res) => {
   try {
