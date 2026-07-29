@@ -1,4 +1,3 @@
-const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const products = require('../data/products');
@@ -94,14 +93,13 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erro no checkout:', error.message);
+    console.error('❌ Erro no checkout:', error.message);
     console.error('Stack:', error.stack);
+    console.error('Payload enviado:', JSON.stringify(req.body, null, 2));
+    
     if (error.response) {
       console.error('SillientPay Error:', JSON.stringify(error.response.data, null, 2));
       console.error('Status:', error.response.status);
-    }
-    
-    if (error.response) {
       return res.status(error.response.status).json({
         error: error.response.data?.error || error.response.data?.message || 'Erro ao processar pagamento',
         code: error.response.data?.code || 'PAYMENT_ERROR',
@@ -109,7 +107,11 @@ router.post('/', async (req, res) => {
       });
     }
     
-    res.status(500).json({ error: error.message || 'Erro interno do servidor', code: 'INTERNAL_ERROR' });
+    res.status(500).json({ 
+      error: error.message || 'Erro interno do servidor', 
+      code: 'INTERNAL_ERROR',
+      details: error.message
+    });
   }
 });
 
